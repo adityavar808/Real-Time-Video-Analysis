@@ -1,6 +1,6 @@
 # Python virtual environment
 Lib/
-Scripts/
+/Scripts/  # Only ignore root Scripts folder
 pyvenv.cfg
 __pycache__/
 *.py[cod]
