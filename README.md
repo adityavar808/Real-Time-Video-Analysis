@@ -84,8 +84,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - OpenCV for computer vision capabilities
 - Flask for the web interface
 
-## Contact
-
-Aditya Varshney - adityavarshney808@gmail.com
-
 Project Link: [https://github.com/adityavar808/real-time-video-analysis](https://github.com/adityavar808/real-time-video-analysis)
