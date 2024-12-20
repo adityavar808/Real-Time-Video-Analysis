@@ -7,8 +7,4 @@ opencv-contrib-python
 ffmpeg
 moviepy
 keras
-gunicorn
-gevent
-redis
-Flask-Caching
-Flask-Limiter
+Gunicorn

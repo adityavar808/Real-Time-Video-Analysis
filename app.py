@@ -1,85 +1,24 @@
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response
 import cv2
 import numpy as np
 import os
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_caching import Cache
-import logging
-from werkzeug.contrib.fixers import ProxyFix
 # from deepface import DeepFace 
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Configure rate limiting
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
-
-# Configure caching
-cache = Cache(app, config={
-    'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': 300
-})
-
-# Global camera object
-camera = None
-
-def get_camera():
-    global camera
-    if camera is None:
-        try:
-            camera = cv2.VideoCapture(0)
-        except Exception as e:
-            logger.error(f"Error initializing camera: {str(e)}")
-            return None
-    return camera
-
-def release_camera():
-    global camera
-    if camera is not None:
-        camera.release()
-        camera = None
-
-@app.before_request
-def before_request():
-    if request.headers.get('X-Forwarded-Proto') == 'http':
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
 
 user_logged_in = True  # Toggle login state
 
 def generate_frames():
-    try:
-        camera = get_camera()
-        if camera is None:
-            return
-
-        while True:
-            success, frame = camera.read()
-            if not success:
-                logger.error("Failed to read frame from camera")
-                break
-            else:
-                try:
-                    ret, buffer = cv2.imencode('.jpg', frame)
-                    frame = buffer.tobytes()
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-                except Exception as e:
-                    logger.error(f"Error processing frame: {str(e)}")
-                    break
-    except Exception as e:
-        logger.error(f"Error in generate_frames: {str(e)}")
-    finally:
-        release_camera()
+    camera = cv2.VideoCapture(0)  # Webcam access
+    while True:
+        success, frame = camera.read()
+        if not success:
+            break
+        else:            
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/')
 def home():
@@ -478,15 +417,6 @@ def movement_video_feed():
             cap.release()
 
     return Response(generate_movement_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.errorhandler(429)
-def ratelimit_handler(e):
-    return {"error": "rate limit exceeded"}, 429
-
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"Internal server error: {str(error)}")
-    return {"error": "internal server error"}, 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
